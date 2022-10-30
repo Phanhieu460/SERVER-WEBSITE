@@ -11,7 +11,7 @@ const blogRouter = require("./routes/blog")
 
 const connectDB = async () => {
     try {
-        await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@whey-protein.8blrndp.mongodb.net/?retryWrites=true&w=majority`,{
+        await mongoose.connect(`mongodb+srv://hieu1312:hieu1312@whey-protein.8blrndp.mongodb.net/?retryWrites=true&w=majority`,{
             useNewUrlParser: true,
             useUnifiedTopology: true
         })
