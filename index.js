@@ -37,6 +37,8 @@ app.use('/blog', blogRouter)
 
 const PORT = process.env.PORT || 4000
 
+app.get("/", (req, res) => res.send('Welcome to our API'))
+
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`))
 
   
