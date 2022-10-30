@@ -2,18 +2,18 @@ const express = require("express");
 const router = express.Router();
 const verifyToken = require("../middleware/auth");
 
-const Product = require("../models/Product");
-// @route GET api/product
+const Blog = require("../models/Blog");
+// @route GET api/Blog
 // GET post
 // @access Private
 router.get("/", async (req, res) => {
   try {
-    // const products = await Product.find({ adminId: req.userId }).populate(
+    // const Blogs = await Blog.find({ adminId: req.userId }).populate(
     //   "adminId",
     //   ["username"]
     // );
-    const products = await Product.find({})
-    res.json({ success: true, products });
+    const blogs = await Blog.find({})
+    res.json({ success: true, blogs });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
@@ -21,39 +21,39 @@ router.get("/", async (req, res) => {
 
 router.get("/search", async (req, res) => {
   try {
-    // const products = await Product.find({ adminId: req.userId }).populate(
+    // const Blogs = await Blog.find({ adminId: req.userId }).populate(
     //   "adminId",
     //   ["username"]
     // );
-    const products = await Product.find({type: req.query.type})
-    res.json({ success: true, products });
+    const blogs = await Blog.find({type: req.query.type})
+    res.json({ success: true, blogs });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
-// @route GET api/product/:id
+// @route GET api/Blog/:id
 // GET post
 // @access Private
 router.get("/:id", verifyToken, async (req, res) => {
   try {
-    // const products = await Product.find({ adminId: req.userId }).populate(
+    // const Blogs = await Blog.find({ adminId: req.userId }).populate(
     //   "adminId",
     //   ["username"]
     // );
-    const products = await Product.findOne({id: req.params.id})
-    res.json({ success: true, products });
+    const blogs = await Blog.findOne({id: req.params.id})
+    res.json({ success: true, blogs });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
-// @route POST api/product
+// @route POST api/Blog
 // Create post
 // @access Private
 
 router.post("/", verifyToken, async (req, res) => {
-  const { name, type, description, image, salePrice, entryPrice, quantity } = req.body;
+  const { name,  description, image, writer } = req.body;
 
   if (!name) {
     return res
@@ -61,21 +61,17 @@ router.post("/", verifyToken, async (req, res) => {
       .json({ success: false, message: "Name is required" });
   }
   try {
-    const newProduct = new Product({
+    const newBlog = new Blog({
       name,
-      type,
       description,
       image,
-      salePrice,
-      entryPrice,
-      adminId: req.userId,
-      quantity
+      writer
     });
-    await newProduct.save();
+    await newBlog.save();
     res.json({
       success: true,
-      message: "Created Product Successfully",
-      product: newProduct,
+      message: "Created Blog Successfully",
+      blog: newBlog,
     });
   } catch (error) {
     console.log(error);
@@ -84,7 +80,7 @@ router.post("/", verifyToken, async (req, res) => {
 });
 
 router.put("/:id", verifyToken, async (req, res) => {
-  const { name, type, description, image, salePrice, entryPrice, quantity } = req.body;
+  const { name, description, image, writer } = req.body;
 
   if (!name) {
     return res
@@ -92,37 +88,33 @@ router.put("/:id", verifyToken, async (req, res) => {
       .json({ success: false, message: "Name is required" });
   }
   try {
-    let updateProduct = {
+    let updateBlog = {
       name,
-      type,
       description: description || "",
       image,
-      salePrice: salePrice || 0,
-      entryPrice: entryPrice || 0,
-      adminId: req.userId,
-      quantity: quantity || 0
+      writer
     };
 
-    const productUpdateCondition = { _id: req.params.id, user: req.userId };
+    const blogUpdateCondition = { _id: req.params.id, user: req.userId };
 
-    updatePost = await Product.findOneAndUpdate(productUpdateCondition, updateProduct, {
+    updatePost = await Blog.findOneAndUpdate(blogUpdateCondition, updateBlog, {
       new: true,
     });
 
-    // USer not authorised to update product
-    if (!updateProduct) {
+    // USer not authorised to update Blog
+    if (!updateBlog) {
       return res
         .status(401)
         .json({
           success: false,
-          message: "Product not found or user authorised",
+          message: "Blog not found or user authorised",
         });
     }
 
     res.json({
       success: true,
       message: "Excellent progress!",
-      product: updateProduct,
+      Blog: updateBlog,
     });
   } catch (error) {
     console.log(error);
@@ -130,22 +122,22 @@ router.put("/:id", verifyToken, async (req, res) => {
   }
 });
 
-// @route DELETE api/products
-// @desc Delete product
+// @route DELETE api/Blogs
+// @desc Delete Blog
 // @access Private
 router.delete('/:id', async (req, res) => {
 	try {
-		const productDeleteCondition = { _id: req.params.id, user: req.userId }
-		const deletedProduct = await Product.findOneAndDelete(productDeleteCondition)
+		const blogDeleteCondition = { _id: req.params.id, user: req.userId }
+		const deletedBlog = await Blog.findOneAndDelete(blogDeleteCondition)
 
 		// User not authorised or post not found
-		if (!deletedProduct)
+		if (!deletedBlog)
 			return res.status(401).json({
 				success: false,
-				message: 'Product not found or user not authorised'
+				message: 'Blog not found or user not authorised'
 			})
 
-		res.json({ success: true, product: deletedProduct })
+		res.json({ success: true, blog: deletedBlog })
 	} catch (error) {
 		console.log(error)
 		res.status(500).json({ success: false, message: 'Internal server error' })

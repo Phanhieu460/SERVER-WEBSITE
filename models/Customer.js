@@ -7,7 +7,7 @@ const CustomerSchema = new Schema({
     },
     gender: {
         type: String,
-        enum: ['Male', 'Female']
+        enum: ['Nam', 'Nữ']
     },
     phone: {
         type: String,
@@ -26,5 +26,6 @@ const CustomerSchema = new Schema({
         enum: ['VIP', 'Member']
     }
 })
+CustomerSchema.set('timestamps', true)
 
 module.exports = mongoose.model('customers', CustomerSchema)

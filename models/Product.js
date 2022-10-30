@@ -13,12 +13,15 @@ const ProductSchema = new Schema({
         type: String
     },
     image: {
-        type: Array
+        type: String
     },
     salePrice: {
-        type: Number
+        type: String
     },
     entryPrice: {
+        type: String
+    },
+    quantity: {
         type: Number
     },
     adminId: {
@@ -26,5 +29,7 @@ const ProductSchema = new Schema({
         ref: 'admins'
     }
 })
+
+ProductSchema.set('timestamps', true)
 
 module.exports = mongoose.model('products', ProductSchema)

@@ -1,9 +1,13 @@
 require('dotenv').config()
 const express = require('express')
 const mongoose = require("mongoose")
+const cors = require("cors")
+
 const authRouter = require('./routes/auth')
 const productRouter = require('./routes/product')
 const adminRouter = require('./routes/admin')
+const customerRouter = require("./routes/customer")
+const blogRouter = require("./routes/blog")
 
 const connectDB = async () => {
     try {
@@ -22,11 +26,13 @@ connectDB()
 
 const app = express()
 app.use(express.json()) // doc bat cu du lieu trong body
+app.use(cors())
 
 app.use('/api/auth', authRouter)
 app.use('/products', productRouter )
 app.use('/api/admin', adminRouter)
-
+app.use('/customer', customerRouter)
+app.use('/blog', blogRouter)
 
 
 const PORT = process.env.PORT || 4000

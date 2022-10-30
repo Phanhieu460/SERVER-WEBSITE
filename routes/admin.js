@@ -2,14 +2,15 @@ const express = require("express");
 const router = express.Router();
 const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
+
 require("dotenv").config();
 
 const Admin = require("../models/Admin");
 
-//@route POST api/auth/register
+//@route POST api/admin/register
 //@access Public
 router.post('/register', async (req, res) => {
-	const { username, password } = req.body
+	const { username, password, fullName, phone, gender, address, image } = req.body
     
 
 	// Simple validation
@@ -32,7 +33,7 @@ router.post('/register', async (req, res) => {
 
 		// All good
 		const hashedPassword = await argon2.hash(password)
-		const newUser = new Admin({ username, password: hashedPassword })
+		const newUser = new Admin({ username, password: hashedPassword, fullName, gender, phone, image, address })
 		await newUser.save()
 
 		// Return token
@@ -51,7 +52,7 @@ router.post('/register', async (req, res) => {
 		res.status(500).json({ success: false, message: 'Internal server error' })
 	}
 })
-//@route POST api/auth/login
+//@route POST api/admin/login
 //@access Public
 
 router.post("/login", async(req, res) => {
@@ -73,9 +74,9 @@ router.post("/login", async(req, res) => {
             return res.status(400).json({success: false, message: "Incorrect password"})
         }
 
-        const token = jwt.sign({userId: user._id}, process.env.ACCESS_TOKEN_SECRET)
+        const accessToken = jwt.sign({userId: user._id}, process.env.ACCESS_TOKEN_SECRET)
 
-        res.json({success: true, message: 'User logged in sucessfully', token})
+        res.json({success: true, message: 'User logged in sucessfully', accessToken})
     } catch (error) {
         res.status(500).json({ success: false, message: "Internal server error" });
     }

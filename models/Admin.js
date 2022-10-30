@@ -28,5 +28,6 @@ const AdminSchema = new Schema({
         type: String
     }
 })
+AdminSchema.set('timestamps', true)
 
 module.exports = mongoose.model('admins', AdminSchema) //users: ten collection trong DB
