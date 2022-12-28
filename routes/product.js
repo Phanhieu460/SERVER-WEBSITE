@@ -12,7 +12,7 @@ router.get("/", async (req, res) => {
     //   "adminId",
     //   ["username"]
     // );
-    const products = await Product.find({})
+    const products = await Product.find({});
     res.json({ success: true, products });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -25,7 +25,7 @@ router.get("/search", async (req, res) => {
     //   "adminId",
     //   ["username"]
     // );
-    const products = await Product.find({type: req.query.type})
+    const products = await Product.find({ type: req.query.type });
     res.json({ success: true, products });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -41,7 +41,7 @@ router.get("/:id", verifyToken, async (req, res) => {
     //   "adminId",
     //   ["username"]
     // );
-    const products = await Product.findOne({id: req.params.id})
+    const products = await Product.findOne({ id: req.params.id });
     res.json({ success: true, products });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -53,7 +53,20 @@ router.get("/:id", verifyToken, async (req, res) => {
 // @access Private
 
 router.post("/", verifyToken, async (req, res) => {
-  const { name, type, description, image, salePrice, entryPrice, quantity } = req.body;
+  const {
+    name,
+    salePrice,
+    entryPrice,
+    discount,
+    latestProduct,
+    category,
+    tag,
+    variation,
+    stock,
+    image,
+    shortDescription,
+    fullDescription,
+  } = req.body;
 
   if (!name) {
     return res
@@ -63,13 +76,17 @@ router.post("/", verifyToken, async (req, res) => {
   try {
     const newProduct = new Product({
       name,
-      type,
-      description,
+      salePrice: salePrice || 0,
+      entryPrice: entryPrice || 0,
+      discount: discount || 0,
+      latestProduct: latestProduct || false,
+      category,
+      tag,
+      variation,
+      stock: stock || 0,
       image,
-      salePrice,
-      entryPrice,
-      adminId: req.userId,
-      quantity
+      shortDescription: shortDescription || "",
+      fullDescription: fullDescription || "",
     });
     await newProduct.save();
     res.json({
@@ -84,7 +101,20 @@ router.post("/", verifyToken, async (req, res) => {
 });
 
 router.put("/:id", verifyToken, async (req, res) => {
-  const { name, type, description, image, salePrice, entryPrice, quantity } = req.body;
+  const {
+    name,
+    salePrice,
+    entryPrice,
+    discount,
+    latestProduct,
+    category,
+    tag,
+    variation,
+    stock,
+    image,
+    shortDescription,
+    fullDescription,
+  } = req.body;
 
   if (!name) {
     return res
@@ -94,29 +124,35 @@ router.put("/:id", verifyToken, async (req, res) => {
   try {
     let updateProduct = {
       name,
-      type,
-      description: description || "",
-      image,
       salePrice: salePrice || 0,
       entryPrice: entryPrice || 0,
-      adminId: req.userId,
-      quantity: quantity || 0
+      shortDescription: shortDescription || "",
+      fullDescription: fullDescription || "",
+      image,
+      discount: discount || 0,
+      latestProduct: latestProduct || false,
+      category,
+      tag,
+      variation,
+      stock: stock || 0,
     };
 
     const productUpdateCondition = { _id: req.params.id, user: req.userId };
 
-    updatePost = await Product.findOneAndUpdate(productUpdateCondition, updateProduct, {
-      new: true,
-    });
+    updatePost = await Product.findOneAndUpdate(
+      productUpdateCondition,
+      updateProduct,
+      {
+        new: true,
+      }
+    );
 
     // USer not authorised to update product
     if (!updateProduct) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          message: "Product not found or user authorised",
-        });
+      return res.status(401).json({
+        success: false,
+        message: "Product not found or user authorised",
+      });
     }
 
     res.json({
@@ -133,22 +169,24 @@ router.put("/:id", verifyToken, async (req, res) => {
 // @route DELETE api/products
 // @desc Delete product
 // @access Private
-router.delete('/:id', async (req, res) => {
-	try {
-		const productDeleteCondition = { _id: req.params.id, user: req.userId }
-		const deletedProduct = await Product.findOneAndDelete(productDeleteCondition)
+router.delete("/:id", async (req, res) => {
+  try {
+    const productDeleteCondition = { _id: req.params.id, user: req.userId };
+    const deletedProduct = await Product.findOneAndDelete(
+      productDeleteCondition
+    );
 
-		// User not authorised or post not found
-		if (!deletedProduct)
-			return res.status(401).json({
-				success: false,
-				message: 'Product not found or user not authorised'
-			})
+    // User not authorised or post not found
+    if (!deletedProduct)
+      return res.status(401).json({
+        success: false,
+        message: "Product not found or user not authorised",
+      });
 
-		res.json({ success: true, product: deletedProduct })
-	} catch (error) {
-		console.log(error)
-		res.status(500).json({ success: false, message: 'Internal server error' })
-	}
-})
+    res.json({ success: true, product: deletedProduct });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 module.exports = router;
