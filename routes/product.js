@@ -1,192 +1,166 @@
 const express = require("express");
+const asyncHandler = require("express-async-handler");
+const { admin, protect } = require("../middleware/auth");
 const router = express.Router();
-const verifyToken = require("../middleware/auth");
 
 const Product = require("../models/Product");
-// @route GET api/product
-// GET post
-// @access Private
-router.get("/", async (req, res) => {
-  try {
-    // const products = await Product.find({ adminId: req.userId }).populate(
-    //   "adminId",
-    //   ["username"]
-    // );
-    const products = await Product.find({});
-    res.json({ success: true, products });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
 
-router.get("/search", async (req, res) => {
-  try {
-    // const products = await Product.find({ adminId: req.userId }).populate(
-    //   "adminId",
-    //   ["username"]
-    // );
-    const products = await Product.find({ type: req.query.type });
-    res.json({ success: true, products });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+//GET ALL Product
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const pageSize = 12;
+    const page = Number(req.query.pageNumber) || 1;
+    const keyword = req.query.keyword
+      ? {
+          name: {
+            $regex: req.query.keyword,
+            $options: "i",
+          },
+        }
+      : {};
+    const count = await Product.countDocuments({ ...keyword });
+    const products = await Product.find({ ...keyword })
+      .limit(pageSize)
+      .skip(pageSize * (page - 1))
+      .sort({ _id: -1 });
+    res.json({ products, page, pages: Math.ceil(count / pageSize) });
+  })
+);
 
-// @route GET api/product/:id
-// GET post
-// @access Private
-router.get("/:id", verifyToken, async (req, res) => {
-  try {
-    // const products = await Product.find({ adminId: req.userId }).populate(
-    //   "adminId",
-    //   ["username"]
-    // );
-    const products = await Product.findOne({ id: req.params.id });
-    res.json({ success: true, products });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+// ADMIN GET ALL PRODUCT WITHOUT SEARCH AND PEGINATION
+router.get(
+  "/all",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const products = await Product.find({}).sort({ _id: -1 });
+    res.json(products);
+  })
+);
 
-// @route POST api/product
-// Create post
-// @access Private
-
-router.post("/", verifyToken, async (req, res) => {
-  const {
-    name,
-    salePrice,
-    entryPrice,
-    discount,
-    latestProduct,
-    category,
-    tag,
-    variation,
-    stock,
-    image,
-    shortDescription,
-    fullDescription,
-  } = req.body;
-
-  if (!name) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Name is required" });
-  }
-  try {
-    const newProduct = new Product({
-      name,
-      salePrice: salePrice || 0,
-      entryPrice: entryPrice || 0,
-      discount: discount || 0,
-      latestProduct: latestProduct || false,
-      category,
-      tag,
-      variation,
-      stock: stock || 0,
-      image,
-      shortDescription: shortDescription || "",
-      fullDescription: fullDescription || "",
-    });
-    await newProduct.save();
-    res.json({
-      success: true,
-      message: "Created Product Successfully",
-      product: newProduct,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
-
-router.put("/:id", verifyToken, async (req, res) => {
-  const {
-    name,
-    salePrice,
-    entryPrice,
-    discount,
-    latestProduct,
-    category,
-    tag,
-    variation,
-    stock,
-    image,
-    shortDescription,
-    fullDescription,
-  } = req.body;
-
-  if (!name) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Name is required" });
-  }
-  try {
-    let updateProduct = {
-      name,
-      salePrice: salePrice || 0,
-      entryPrice: entryPrice || 0,
-      shortDescription: shortDescription || "",
-      fullDescription: fullDescription || "",
-      image,
-      discount: discount || 0,
-      latestProduct: latestProduct || false,
-      category,
-      tag,
-      variation,
-      stock: stock || 0,
-    };
-
-    const productUpdateCondition = { _id: req.params.id, user: req.userId };
-
-    updatePost = await Product.findOneAndUpdate(
-      productUpdateCondition,
-      updateProduct,
-      {
-        new: true,
-      }
-    );
-
-    // USer not authorised to update product
-    if (!updateProduct) {
-      return res.status(401).json({
-        success: false,
-        message: "Product not found or user authorised",
-      });
+// GET SINGLE PRODUCT
+router.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const product = await Product.findById(req.params.id);
+    if (product) {
+      res.json(product);
+    } else {
+      res.status(404);
+      throw new Error("Product not Found");
     }
+  })
+);
+// DELETE PRODUCT
+router.delete(
+  "/:id",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const product = await Product.findById(req.params.id);
+    if (product) {
+      await product.remove();
+      res.json({ message: "Product deleted" });
+    } else {
+      res.status(404);
+      throw new Error("Product not Found");
+    }
+  })
+);
 
-    res.json({
-      success: true,
-      message: "Excellent progress!",
-      product: updateProduct,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
-
-// @route DELETE api/products
-// @desc Delete product
-// @access Private
-router.delete("/:id", async (req, res) => {
-  try {
-    const productDeleteCondition = { _id: req.params.id, user: req.userId };
-    const deletedProduct = await Product.findOneAndDelete(
-      productDeleteCondition
-    );
-
-    // User not authorised or post not found
-    if (!deletedProduct)
-      return res.status(401).json({
-        success: false,
-        message: "Product not found or user not authorised",
+// CREATE PRODUCT
+router.post(
+  "/",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const {
+      name,
+      salePrice,
+      entryPrice,
+      discount,
+      latestProduct,
+      category,
+      tag,
+      variation,
+      stock,
+      image,
+      shortDescription,
+      fullDescription,
+    } = req.body;
+    const productExist = await Product.findOne({ name });
+    if (productExist) {
+      res.status(400);
+      throw new Error("Product name already exist");
+    } else {
+      const product = new Product({
+        name,
+        salePrice,
+        entryPrice,
+        discount,
+        latestProduct,
+        category,
+        tag,
+        variation,
+        stock,
+        image,
+        shortDescription,
+        fullDescription,
+        user: req.user._id,
       });
+      if (product) {
+        const createdproduct = await product.save();
+        res.status(201).json(createdproduct);
+      } else {
+        res.status(400);
+        throw new Error("Invalid product data");
+      }
+    }
+  })
+);
 
-    res.json({ success: true, product: deletedProduct });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+// UPDATE PRODUCT
+router.put(
+  "/:id",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const {
+      name,
+      salePrice,
+      entryPrice,
+      discount,
+      latestProduct,
+      category,
+      tag,
+      variation,
+      stock,
+      image,
+      shortDescription,
+      fullDescription,
+    } = req.body;
+    const product = await Product.findById(req.params.id);
+    if (product) {
+      product.name = name || product.name;
+      product.salePrice = salePrice || product.salePrice;
+      product.entryPrice = entryPrice || product.entryPrice;
+      product.discount = discount || product.discount;
+      product.latestProduct = latestProduct || product.latestProduct;
+      product.category = category || product.category;
+      product.tag = tag || product.tag;
+      product.shortDescription = shortDescription || product.shortDescription;
+      product.fullDescription = fullDescription || product.fullDescription;
+      product.image = image || product.image;
+      product.stock = stock || product.stock;
+      product.variation = variation || product.variation;
+
+      const updatedProduct = await product.save();
+      res.json(updatedProduct);
+    } else {
+      res.status(404);
+      throw new Error("Product not found");
+    }
+  })
+);
 module.exports = router;
