@@ -8,7 +8,7 @@ const authRouter = require("./routes/user");
 const productRouter = require("./routes/product");
 const adminRouter = require("./routes/admin");
 // const customerRouter = require("./routes/customer");
-// const blogRouter = require("./routes/blog");
+const blogRouter = require("./routes/blog");
 
 connectDB();
 
@@ -20,7 +20,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/products", productRouter);
 app.use("/api/admin", adminRouter);
 // app.use("/customer", customerRouter);
-// app.use("/blog", blogRouter);
+app.use("/api/blogs", blogRouter);
 // app.use('order', blogRouter)
 
 const PORT = process.env.PORT || 5000;

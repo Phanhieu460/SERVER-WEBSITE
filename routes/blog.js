@@ -1,146 +1,124 @@
 const express = require("express");
+const asyncHandler = require("express-async-handler");
+const { admin, protect } = require("../middleware/auth");
 const router = express.Router();
-const verifyToken = require("../middleware/auth");
 
 const Blog = require("../models/Blog");
-// @route GET api/Blog
-// GET post
-// @access Private
-router.get("/", async (req, res) => {
-  try {
-    // const Blogs = await Blog.find({ adminId: req.userId }).populate(
-    //   "adminId",
-    //   ["username"]
-    // );
-    const blogs = await Blog.find({})
-    res.json({ success: true, blogs });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
 
-router.get("/search", async (req, res) => {
-  try {
-    // const Blogs = await Blog.find({ adminId: req.userId }).populate(
-    //   "adminId",
-    //   ["username"]
-    // );
-    const blogs = await Blog.find({type: req.query.type})
-    res.json({ success: true, blogs });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+//GET ALL Blog
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const pageSize = 12;
+    const page = Number(req.query.pageNumber) || 1;
+    const keyword = req.query.keyword
+      ? {
+          name: {
+            $regex: req.query.keyword,
+            $options: "i",
+          },
+        }
+      : {};
+    const count = await Blog.countDocuments({ ...keyword });
+    const blogs = await Blog.find({ ...keyword })
+      .limit(pageSize)
+      .skip(pageSize * (page - 1))
+      .sort({ _id: -1 });
+    res.json({ products, page, pages: Math.ceil(count / pageSize) });
+  })
+);
 
-// @route GET api/Blog/:id
-// GET post
-// @access Private
-router.get("/:id", verifyToken, async (req, res) => {
-  try {
-    // const Blogs = await Blog.find({ adminId: req.userId }).populate(
-    //   "adminId",
-    //   ["username"]
-    // );
-    const blogs = await Blog.findOne({id: req.params.id})
-    res.json({ success: true, blogs });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+// ADMIN GET ALL BLOG WITHOUT SEARCH AND PEGINATION
+router.get(
+  "/all",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const blogs = await Blog.find({}).sort({ _id: -1 });
+    res.json(blogs);
+  })
+);
 
-// @route POST api/Blog
-// Create post
-// @access Private
-
-router.post("/", verifyToken, async (req, res) => {
-  const { name,  description, image, writer } = req.body;
-
-  if (!name) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Name is required" });
-  }
-  try {
-    const newBlog = new Blog({
-      name,
-      description,
-      image,
-      writer
-    });
-    await newBlog.save();
-    res.json({
-      success: true,
-      message: "Created Blog Successfully",
-      blog: newBlog,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
-
-router.put("/:id", verifyToken, async (req, res) => {
-  const { name, description, image, writer } = req.body;
-
-  if (!name) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Name is required" });
-  }
-  try {
-    let updateBlog = {
-      name,
-      description: description || "",
-      image,
-      writer
-    };
-
-    const blogUpdateCondition = { _id: req.params.id, user: req.userId };
-
-    updatePost = await Blog.findOneAndUpdate(blogUpdateCondition, updateBlog, {
-      new: true,
-    });
-
-    // USer not authorised to update Blog
-    if (!updateBlog) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          message: "Blog not found or user authorised",
-        });
+// GET SINGLE Blog
+router.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const blog = await Blog.findById(req.params.id);
+    if (blog) {
+      res.json(blog);
+    } else {
+      res.status(404);
+      throw new Error("Blog not Found");
     }
+  })
+);
+// DELETE BLOG
+router.delete(
+  "/:id",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const blog = await Blog.findById(req.params.id);
+    if (blog) {
+      await blog.remove();
+      res.json({ message: "Blog deleted" });
+    } else {
+      res.status(404);
+      throw new Error("Blog not Found");
+    }
+  })
+);
 
-    res.json({
-      success: true,
-      message: "Excellent progress!",
-      Blog: updateBlog,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+// CREATE Blog
+router.post(
+  "/",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const { name, description, image, writer } = req.body;
+    const blogExist = await Blog.findOne({ name });
+    if (blogExist) {
+      res.status(400);
+      throw new Error("Blog name already exist");
+    } else {
+      const blog = new Blog({
+        name,
+        description,
+        image,
+        writer,
+        user: req.user._id,
+      });
+      if (blog) {
+        const createdblog = await blog.save();
+        res.status(201).json(createdblog);
+      } else {
+        res.status(400);
+        throw new Error("Invalid blog data");
+      }
+    }
+  })
+);
 
-// @route DELETE api/Blogs
-// @desc Delete Blog
-// @access Private
-router.delete('/:id', async (req, res) => {
-	try {
-		const blogDeleteCondition = { _id: req.params.id, user: req.userId }
-		const deletedBlog = await Blog.findOneAndDelete(blogDeleteCondition)
+// UPDATE BLOG
+router.put(
+  "/:id",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const { name, description, image, writer } = req.body;
+    const blog = await Blog.findById(req.params.id);
+    if (blog) {
+      product.name = name || product.name;
+      product.description = description || product.description;
+      product.image = image || product.image;
+      product.writer = writer || product.writer;
 
-		// User not authorised or post not found
-		if (!deletedBlog)
-			return res.status(401).json({
-				success: false,
-				message: 'Blog not found or user not authorised'
-			})
-
-		res.json({ success: true, blog: deletedBlog })
-	} catch (error) {
-		console.log(error)
-		res.status(500).json({ success: false, message: 'Internal server error' })
-	}
-})
+      const updatedBlog = await blog.save();
+      res.json(updatedBlog);
+    } else {
+      res.status(404);
+      throw new Error("Blog not found");
+    }
+  })
+);
 module.exports = router;

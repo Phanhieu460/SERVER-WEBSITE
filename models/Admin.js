@@ -39,7 +39,6 @@ AdminSchema.set("timestamps", true);
 
 // Login
 AdminSchema.methods.matchPassword = async function (enterPassword) {
-  console.log(enterPassword, this.password, "zzz");
   return await bcrypt.compare(enterPassword, this.password);
 };
 
