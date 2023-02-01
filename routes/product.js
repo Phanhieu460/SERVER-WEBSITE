@@ -9,7 +9,7 @@ const Product = require("../models/Product");
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const pageSize = 12;
+    const pageSize = 24;
     const page = Number(req.query.pageNumber) || 1;
     const keyword = req.query.keyword
       ? {

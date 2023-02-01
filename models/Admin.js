@@ -19,10 +19,6 @@ const AdminSchema = new Schema({
   address: {
     type: String,
   },
-  phone: {
-    type: String,
-    unique: true,
-  },
   gender: {
     type: String,
   },
@@ -32,7 +28,7 @@ const AdminSchema = new Schema({
   isAdmin: {
     type: Boolean,
     required: true,
-    default: false,
+    default: true,
   },
 });
 AdminSchema.set("timestamps", true);

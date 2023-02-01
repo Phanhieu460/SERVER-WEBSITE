@@ -7,8 +7,9 @@ const connectDB = require("./config/MongoDb");
 const authRouter = require("./routes/user");
 const productRouter = require("./routes/product");
 const adminRouter = require("./routes/admin");
-// const customerRouter = require("./routes/customer");
+const customerRouter = require("./routes/customer");
 const blogRouter = require("./routes/blog");
+const orderRouter = require("./routes/order");
 
 connectDB();
 
@@ -16,12 +17,15 @@ const app = express();
 app.use(express.json()); // doc bat cu du lieu trong body
 app.use(cors());
 
-app.use("/api/auth", authRouter);
+app.use("/api/users", authRouter);
 app.use("/api/products", productRouter);
 app.use("/api/admin", adminRouter);
-// app.use("/customer", customerRouter);
+app.use("/api/customers", customerRouter);
 app.use("/api/blogs", blogRouter);
-// app.use('order', blogRouter)
+app.use("/api/orders", orderRouter);
+app.get("/api/config/paypal", (req, res) => {
+  res.send(process.env.PAYPAL_CLIENT_ID);
+});
 
 const PORT = process.env.PORT || 5000;
 

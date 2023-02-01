@@ -7,10 +7,10 @@ const ProductSchema = new Schema({
     requried: true,
   },
   salePrice: {
-    type: String,
+    type: Number,
   },
   entryPrice: {
-    type: String,
+    type: Number,
   },
   discount: {
     type: Number,

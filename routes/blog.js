@@ -24,7 +24,7 @@ router.get(
       .limit(pageSize)
       .skip(pageSize * (page - 1))
       .sort({ _id: -1 });
-    res.json({ products, page, pages: Math.ceil(count / pageSize) });
+    res.json({ blogs, page, pages: Math.ceil(count / pageSize) });
   })
 );
 
@@ -61,7 +61,7 @@ router.delete(
     const blog = await Blog.findById(req.params.id);
     if (blog) {
       await blog.remove();
-      res.json({ message: "Blog deleted" });
+      res.json({ message: "Xóa Thành Công" });
     } else {
       res.status(404);
       throw new Error("Blog not Found");
@@ -79,7 +79,7 @@ router.post(
     const blogExist = await Blog.findOne({ name });
     if (blogExist) {
       res.status(400);
-      throw new Error("Blog name already exist");
+      throw new Error("Bài viết đã tồn tại.");
     } else {
       const blog = new Blog({
         name,

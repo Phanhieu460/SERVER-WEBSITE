@@ -1,150 +1,146 @@
 const express = require("express");
+const asyncHandler = require("express-async-handler");
+const { admin, protect } = require("../middleware/auth");
 const router = express.Router();
-const verifyToken = require("../middleware/auth");
 
 const Customer = require("../models/Customer");
-// @route GET api/Customer
-// GET post
-// @access Private
-router.get("/", verifyToken, async (req, res) => {
-  try {
-    // const customers = await Customer.find({ adminId: req.userId }).populate(
-    //   "adminId",
-    //   ["username"]
-    // );
-    const customers = await Customer.find({});
-    res.json({ success: true, customers });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
 
-// @route GET api/Customer/:id
-// GET post
-// @access Private
-router.get("/:id", verifyToken, async (req, res) => {
-  try {
-    // const Customers = await Customer.find({ adminId: req.userId }).populate(
-    //   "adminId",
-    //   ["username"]
-    // );
-    const customers = await Customer.findOne({ id: req.params.id });
-    res.json({ success: true, customers });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+//GET ALL Customer
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const pageSize = 12;
+    const page = Number(req.query.pageNumber) || 1;
+    const keyword = req.query.keyword
+      ? {
+          name: {
+            $regex: req.query.keyword,
+            $options: "i",
+          },
+        }
+      : {};
+    const count = await Customer.countDocuments({ ...keyword });
+    const customers = await Customer.find({ ...keyword })
+      .limit(pageSize)
+      .skip(pageSize * (page - 1))
+      .sort({ _id: -1 });
+    res.json({ customers, page, pages: Math.ceil(count / pageSize) });
+  })
+);
 
-// @route POST api/Customer
-// Create post
-// @access Private
+// ADMIN GET ALL Customer WITHOUT SEARCH AND PEGINATION
+router.get(
+  "/all",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const customers = await Customer.find({}).sort({ _id: -1 });
+    res.json(customers);
+  })
+);
 
-router.post("/", verifyToken, async (req, res) => {
-  const {
-    name,
-    gender,
-    phone,
-    address,
-    email,
-    numberOfPurchase,
-    customerType,
-  } = req.body;
+// GET SINGLE Customer
+router.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const customer = await Customer.findById(req.params.id);
+    if (customer) {
+      res.json(customer);
+    } else {
+      res.status(404);
+      throw new Error("Customer not Found");
+    }
+  })
+);
+// DELETE CUSTOMER
+router.delete(
+  "/:id",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const customer = await Customer.findById(req.params.id);
+    if (customer) {
+      await customer.remove();
+      res.json({ message: "Xóa Thành Công" });
+    } else {
+      res.status(404);
+      throw new Error("Customer not Found");
+    }
+  })
+);
 
-  try {
-    const newCustomer = new Customer({
+// CREATE Customer
+router.post(
+  "/",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const {
       name,
       gender,
       phone,
-      address,
       email,
+      address,
       numberOfPurchase,
       customerType,
-    });
-    await newCustomer.save();
-    res.json({
-      success: true,
-      message: "Created Customer Successfully",
-      customer: newCustomer,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+    } = req.body;
+    const customerExist = await Customer.findOne({ name });
+    if (customerExist) {
+      res.status(400);
+      throw new Error("Blog name already exist");
+    } else {
+      const customer = new Customer({
+        name,
+        gender,
+        phone,
+        email,
+        address,
+        numberOfPurchase,
+        customerType,
+        user: req.user._id,
+      });
+      if (customer) {
+        const createdcustomer = await customer.save();
+        res.status(201).json(createdcustomer);
+      } else {
+        res.status(400);
+        throw new Error("Invalid customer data");
+      }
+    }
+  })
+);
 
-router.put("/:id", verifyToken, async (req, res) => {
-  const {
-    name,
-    gender,
-    phone,
-    address,
-    email,
-    numberOfPurchase,
-    customerType,
-  } = req.body;
-
-  try {
-    let updateCustomer = {
-      name,
+// UPDATE CUSTOMER
+router.put(
+  "/:id",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const {
       name,
       gender,
       phone,
-      address,
       email,
-      numberOfPurchase: numberOfPurchase || 0,
-      customerType: customerType || "Member",
-    };
+      address,
+      numberOfPurchase,
+      customerType,
+    } = req.body;
+    const customer = await Customer.findById(req.params.id);
+    if (customer) {
+      customer.name = name || customer.name;
+      customer.gender = gender || customer.gender;
+      customer.phone = phone || customer.phone;
+      customer.email = email || customer.email;
+      customer.address = address || customer.address;
+      customer.numberOfPurchase = numberOfPurchase || customer.numberOfPurchase;
+      customer.customerType = customerType || customer.customerType;
 
-    const customerUpdateCondition = { _id: req.params.id, user: req.userId };
-
-    updateCustomer = await Customer.findOneAndUpdate(
-      customerUpdateCondition,
-      updateCustomer,
-      {
-        new: true,
-      }
-    );
-
-    // USer not authorised to update Customer
-    if (!updateCustomer) {
-      return res.status(401).json({
-        success: false,
-        message: "Customer not found or user authorised",
-      });
+      const updatedCustomer = await customer.save();
+      res.json(updatedCustomer);
+    } else {
+      res.status(404);
+      throw new Error("Customer not found");
     }
-
-    res.json({
-      success: true,
-      message: "Excellent progress!",
-      customer: updateCustomer,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
-
-// @route DELETE api/Customers
-// @desc Delete Customer
-// @access Private
-router.delete("/:id", verifyToken, async (req, res) => {
-  try {
-    const customerDeleteCondition = { _id: req.params.id, user: req.userId };
-    const deletedCustomer = await Customer.findOneAndDelete(
-      customerDeleteCondition
-    );
-
-    // User not authorised or post not found
-    if (!deletedCustomer)
-      return res.status(401).json({
-        success: false,
-        message: "Customer not found or user not authorised",
-      });
-
-    res.json({ success: true, customer: deletedCustomer });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+  })
+);
 module.exports = router;

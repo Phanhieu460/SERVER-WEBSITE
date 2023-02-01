@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { admin, protect } = require("../middleware/auth");
+const { protect } = require("../middleware/user");
 const asyncHandler = require("express-async-handler");
 const generateToken = require("../utils/generateToken");
 
@@ -25,7 +25,7 @@ router.post(
       });
     } else {
       res.status(401);
-      throw new Error("Invalid Email or Password");
+      throw new Error("Email hoặc mật khẩu không đúng!");
     }
   })
 );
@@ -40,7 +40,7 @@ router.post(
 
     if (userExists) {
       res.status(400);
-      throw new Error("User already exists");
+      throw new Error("Người Dùng Đã Tồn Tại!");
     }
 
     const user = await User.create({
@@ -116,7 +116,6 @@ router.put(
 router.get(
   "/",
   protect,
-  admin,
   asyncHandler(async (req, res) => {
     const users = await User.find({});
     res.json(users);

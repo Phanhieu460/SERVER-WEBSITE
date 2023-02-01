@@ -26,7 +26,7 @@ router.post(
       });
     } else {
       res.status(401);
-      throw new Error("Invalid Email or Password");
+      throw new Error("Email hoặc mật khẩu không đúng!");
     }
   })
 );
@@ -41,7 +41,7 @@ router.post(
 
     if (userExists) {
       res.status(400);
-      throw new Error("User already exists");
+      throw new Error("Người dùng đã tồn tại!");
     }
 
     const user = await Admin.create({
