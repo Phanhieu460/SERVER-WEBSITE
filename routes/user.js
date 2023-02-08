@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { protect } = require("../middleware/user");
+const { protectUser } = require("../middleware/user");
 const asyncHandler = require("express-async-handler");
 const generateToken = require("../utils/generateToken");
 
@@ -66,7 +66,7 @@ router.post(
 // PROFILE
 router.get(
   "/profile",
-  protect,
+  protectUser,
   asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
 
@@ -87,7 +87,7 @@ router.get(
 // UPDATE PROFILE
 router.put(
   "/profile",
-  protect,
+  protectUser,
   asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
 
@@ -115,7 +115,7 @@ router.put(
 // GET ALL USER ADMIN
 router.get(
   "/",
-  protect,
+  protectUser,
   asyncHandler(async (req, res) => {
     const users = await User.find({});
     res.json(users);

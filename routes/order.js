@@ -1,6 +1,7 @@
 const express = require("express");
 const asyncHandler = require("express-async-handler");
-const { protect } = require("../middleware/user");
+const { protectUser } = require("../middleware/user");
+const { admin, protect } = require("../middleware/auth");
 const router = express.Router();
 
 const Order = require("../models/Order");
@@ -8,7 +9,7 @@ const Order = require("../models/Order");
 // CREATE ORDER
 router.post(
   "/",
-  protect,
+  protectUser,
   asyncHandler(async (req, res) => {
     const {
       orderItems,
@@ -44,7 +45,7 @@ router.post(
 // ADMIN GET ALL ORDERS
 router.get(
   "/all",
-  protect,
+  protectUser,
   asyncHandler(async (req, res) => {
     const orders = await Order.find({})
       .sort({ _id: -1 })
@@ -55,7 +56,7 @@ router.get(
 // USER LOGIN ORDERS
 router.get(
   "/",
-  protect,
+  protectUser,
   asyncHandler(async (req, res) => {
     const order = await Order.find({ user: req.user._id }).sort({ _id: -1 });
     res.json(order);
@@ -65,7 +66,7 @@ router.get(
 // GET ORDER BY ID
 router.get(
   "/:id",
-  protect,
+  protectUser,
   asyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id).populate(
       "user",
@@ -80,11 +81,27 @@ router.get(
     }
   })
 );
+//ORDER DELETE
+router.delete(
+  "/:id",
+  protect,
+  admin,
+  asyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+    if (order) {
+      await order.remove();
+      res.json({ message: "Đơn hàng đã được xóa" });
+    } else {
+      res.status(404);
+      throw new Error("Đơn hàng không tồn tại");
+    }
+  })
+);
 
 // ORDER IS PAID
 router.put(
   "/:id/pay",
-  protect,
+  protectUser,
   asyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
 
@@ -110,7 +127,7 @@ router.put(
 // ORDER IS PAID
 router.put(
   "/:id/delivered",
-  protect,
+  protectUser,
   asyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
 

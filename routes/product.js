@@ -61,7 +61,7 @@ router.delete(
     const product = await Product.findById(req.params.id);
     if (product) {
       await product.remove();
-      res.json({ message: "Product deleted" });
+      res.json({ message: "Sản phẩm đã được xóa" });
     } else {
       res.status(404);
       throw new Error("Product not Found");
